@@ -369,11 +369,19 @@ function loadNomSound() {
                 ctx.fillText('TIME UP!', canvas.width/2, 210);
                 ctx.fillStyle = '#fff';
                 ctx.font = 'bold 32px Arial';
-                ctx.fillText('You ate ' + score + ' dogs!', canvas.width/2, 270);
-                if (score > highScore) ctx.fillText('NEW HIGH SCORE!', canvas.width/2, 315);
+                ctx.fillText('Chad ate ' + score + ' dogs!', canvas.width/2, 270);
+                ctx.fillStyle = '#ffeb3b';
+                ctx.font = 'bold 24px Arial';
+                ctx.fillText('CHAD BE BUSY WITH', canvas.width/2, 315);
+                ctx.fillText('THEM GLIZZYS!', canvas.width/2, 345);
+                if (score > highScore) {
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 32px Arial';
+                    ctx.fillText('NEW HIGH SCORE!', canvas.width/2, 390);
+                }
                 ctx.fillStyle = '#ff6b00';
                 ctx.font = '22px Arial';
-                ctx.fillText('Tap screen to play again', canvas.width/2, 380);
+                ctx.fillText('Tap screen to play again', canvas.width/2, 440);
                 ctx.textAlign = 'left';
             }
         }
