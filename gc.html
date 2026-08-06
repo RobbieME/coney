@@ -2,11 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>GLIZZY CHAD</title>
     <style>
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            /* iOS Safari: 100% + fill-available + dvh cover old and new iPhones */
+            height: -webkit-fill-available;
+            height: 100dvh;
+            overflow: hidden;
+            -webkit-text-size-adjust: 100%;
+        }
         body {
-            margin: 0; padding: 0;
             background: linear-gradient(#1a0f0a, #2c1810);
             font-family: Arial, sans-serif;
             color: white;
@@ -14,25 +25,50 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            justify-content: safe center;
             touch-action: none;
-            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            padding:
+                max(4px, env(safe-area-inset-top, 0px))
+                max(4px, env(safe-area-inset-right, 0px))
+                max(4px, env(safe-area-inset-bottom, 0px))
+                max(4px, env(safe-area-inset-left, 0px));
+        }
+        h1 {
+            margin: 0 0 6px;
+            font-size: clamp(1rem, 4.5vw, 1.75rem);
+            line-height: 1.15;
+            text-align: center;
+            flex-shrink: 0;
         }
         .game-container {
             position: relative;
             width: 400px;
+            flex-shrink: 0;
+            /* JS sets final pixel size to fit the screen */
         }
         #game {
+            display: block;
+            width: 100%;
+            height: auto;
             border: 5px solid #ff6b00;
             border-radius: 18px;
             box-shadow: 0 0 40px rgba(255, 107, 0, 0.5);
             background: #111;
+            /* Keep canvas drawing buffer 400x600; CSS sizes the display */
         }
         .arrow-btn {
             position: absolute;
-            bottom: 18px;
-            width: 74px;
-            height: 74px;
+            /* Sit above the very bottom so thumbs can reach on short phones */
+            bottom: 10%;
+            width: 18%;
+            max-width: 74px;
+            min-width: 56px;
+            min-height: 44px; /* Apple HIG minimum touch target */
+            aspect-ratio: 1;
+            height: auto;
             background: linear-gradient(145deg, #3a2a22, #251c16);
             border: 5px solid #ff6b00;
             border-radius: 50%;
@@ -46,8 +82,11 @@
             transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, border-color 0.08s;
             cursor: pointer;
             user-select: none;
+            -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
             touch-action: none;
+            z-index: 20;
         }
 
         .arrow-btn:active {
@@ -58,12 +97,12 @@
             border-color: #ff9f40;
         }
 
-        .left { left: 18px; }
-        .right { right: 18px; }
+        .left { left: 4%; }
+        .right { right: 4%; }
 
         .arrow-btn svg {
-            width: 34px;
-            height: 34px;
+            width: 46%;
+            height: 46%;
             stroke: #ffffff;
             stroke-width: 4;
             stroke-linecap: round;
@@ -73,11 +112,11 @@
 
         .start-btn {
             position: absolute;
-            bottom: 115px;
+            bottom: 28%;
             left: 50%;
             transform: translateX(-50%);
-            padding: 12px 52px;
-            font-size: 26px;
+            padding: 10px 40px;
+            font-size: clamp(18px, 5vw, 26px);
             font-weight: bold;
             letter-spacing: 1px;
             background: #ff6b00;
@@ -88,11 +127,12 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             z-index: 15;
             display: none;
+            white-space: nowrap;
         }
 
         #status {
-            position: absolute; top: 20px; left: 0; right: 0;
-            text-align: center; font-size: 28px; font-weight: bold;
+            position: absolute; top: 8%; left: 0; right: 0;
+            text-align: center; font-size: clamp(18px, 6vw, 28px); font-weight: bold;
             text-shadow: 0 0 10px #ff6b00; z-index: 10;
         }
     </style>
@@ -125,8 +165,31 @@
         const ctx = canvas.getContext('2d');
         const statusText = document.getElementById('status');
         const startBtn = document.getElementById('startBtn');
+        const gameContainer = document.querySelector('.game-container');
+        const GAME_W = 400;
+        const GAME_H = 600;
+        // Keep Chad above the on-screen arrow buttons (HTML overlay)
+        const PLAYER_Y = 420;
 
-        let player = { x: 170, y: 515, width: 60, height: 68 };
+        // Scale the whole game UI so it fits short phone screens (incl. iPhone Safari chrome)
+        function fitGameToViewport() {
+            const title = document.querySelector('h1');
+            const titleH = title ? title.getBoundingClientRect().height + 8 : 0;
+            const padX = 8;
+            const padY = 8;
+            // visualViewport is the reliable size on iOS when the URL bar shows/hides
+            const vv = window.visualViewport;
+            const availW = Math.max(200, (vv ? vv.width : window.innerWidth) - padX * 2);
+            const availH = Math.max(200, (vv ? vv.height : window.innerHeight) - titleH - padY * 2);
+            const scale = Math.min(availW / GAME_W, availH / GAME_H, 1);
+            const w = Math.max(200, Math.floor(GAME_W * scale));
+            const h = Math.floor(w * (GAME_H / GAME_W));
+            gameContainer.style.width = w + 'px';
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+        }
+
+        let player = { x: 170, y: PLAYER_Y, width: 60, height: 68 };
         let hotdogs = [];
         let score = 0;
         let timeLeft = 30;
@@ -480,6 +543,7 @@ function loadNomSound() {
             gameOver = false;
             hotdogs = [];
             player.x = 170;
+            player.y = PLAYER_Y;
             lastSpawn = Date.now();
             milestoneFlashUntil = 0;
             eatingUntil = 0;
@@ -491,6 +555,13 @@ function loadNomSound() {
         }
 
         function initGame() {
+            fitGameToViewport();
+            window.addEventListener('resize', fitGameToViewport);
+            window.addEventListener('orientationchange', () => setTimeout(fitGameToViewport, 100));
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', fitGameToViewport);
+            }
+
             for (let i = 0; i < 3; i++) {
                 spawnHotDog();
                 hotdogs[i].y = -60 - i * 90;
@@ -500,17 +571,26 @@ function loadNomSound() {
             const leftBtn = document.getElementById('leftBtn');
             const rightBtn = document.getElementById('rightBtn');
 
-            leftBtn.addEventListener('touchstart', e => { e.preventDefault(); leftHeld = true; }, {passive: false});
-            leftBtn.addEventListener('touchend', () => leftHeld = false);
-            leftBtn.addEventListener('mousedown', () => leftHeld = true);
-            leftBtn.addEventListener('mouseup', () => leftHeld = false);
-            leftBtn.addEventListener('mouseleave', () => leftHeld = false);
+            function bindHold(btn, setHeld) {
+                btn.addEventListener('touchstart', e => { e.preventDefault(); setHeld(true); }, {passive: false});
+                btn.addEventListener('touchend', () => setHeld(false));
+                btn.addEventListener('touchcancel', () => setHeld(false));
+                btn.addEventListener('mousedown', () => setHeld(true));
+                btn.addEventListener('mouseup', () => setHeld(false));
+                btn.addEventListener('mouseleave', () => setHeld(false));
+            }
+            bindHold(leftBtn, v => { leftHeld = v; });
+            bindHold(rightBtn, v => { rightHeld = v; });
 
-            rightBtn.addEventListener('touchstart', e => { e.preventDefault(); rightHeld = true; }, {passive: false});
-            rightBtn.addEventListener('touchend', () => rightHeld = false);
-            rightBtn.addEventListener('mousedown', () => rightHeld = true);
-            rightBtn.addEventListener('mouseup', () => rightHeld = false);
-            rightBtn.addEventListener('mouseleave', () => rightHeld = false);
+            // Keyboard support (desktop / bluetooth keyboards)
+            window.addEventListener('keydown', e => {
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') leftHeld = true;
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') rightHeld = true;
+            });
+            window.addEventListener('keyup', e => {
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') leftHeld = false;
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') rightHeld = false;
+            });
 
             startBtn.addEventListener('click', () => {
                 startBtn.style.display = 'none';
